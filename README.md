@@ -1,89 +1,140 @@
 # VAULT (Virtual Archive & Upload List Tracker)
 
-> An enterprise-grade, self-hosted document management and retrieval system designed to automate the ingestion, processing, and indexing of physical scans for lightning-fast audit retrieval.
+Enterprise-grade, self-hosted document management with asynchronous OCR, Smart Regex linking, triage review, full-text search, and structured browse navigation.
 
-## 📖 Overview
+## What Is Implemented
 
-VAULT bridges the gap between physical paper trails and digital audits. By integrating directly with enterprise network scanners (like the Fujifilm Apeos C2450), VAULT automatically detects new document scans, processes them through an asynchronous Optical Character Recognition (OCR) pipeline, and attempts to automatically link them to existing business records (like Purchase Orders) using Smart Regex. 
+- FastAPI backend with document ingest, triage queue, linking, search, and browse-ready metadata endpoints.
+- Celery worker pipeline for OCR extraction and regex-based auto-linking.
+- PostgreSQL metadata storage via SQLModel.
+- MinIO object storage for raw PDF files.
+- Meilisearch indexing for audit-ready document retrieval.
+- React + Tailwind UI using Shadcn-style components for dashboard workflows.
+- Docker Compose stack for one-command local startup.
 
-For documents that require human verification, VAULT provides a streamlined "Triage Queue" desktop application for on-premise staff, while offering secure web-based access for remote users.
+## Retrieval Modes
 
-## ✨ Key Features
+VAULT supports two complementary retrieval modes:
 
-* **Automated Network Ingestion:** Instantly detects and queues new PDF scans dropped into shared SMB/FTP network folders.
-* **Asynchronous Processing:** Utilizes a Redis + Celery task queue to handle heavy OCR workloads without impacting system performance.
-* **Hybrid Indexing (Smart Regex + Manual Triage):** Automatically links highly-confident document matches (e.g., `PO-12345`) to database records. Unrecognized files are routed to a human-in-the-loop review queue.
-* **Audit-Ready Search:** Fully indexed OCR text powered by Meilisearch, allowing staff to instantly locate documents by vendor name, line item, or ID.
-* **Unified Client Architecture:** A single React/Vue UI codebase served as a blazing-fast native desktop app (via Tauri/Rust) for local staff, and as a standard web app for remote access.
-* **Developer-Friendly API:** Auto-generated Swagger documentation via FastAPI for easy integration with external ERP and accounting software.
+- Search: Full-text and keyword discovery powered by OCR indexing.
+- Browse: Structured navigation by metadata facets such as department, year, document type, supplier, and other business tags.
 
-## 🛠️ Technology Stack
+Browse is intended for users who know the business context but not the exact text inside a document.
 
-**Backend & Infrastructure**
-* **API:** Python 3.11+ / FastAPI
-* **Task Queue:** Redis (Broker) + Celery (Workers)
-* **Database:** PostgreSQL (Relational metadata & linking)
-* **Object Storage:** MinIO (S3-compatible, self-hosted vault for raw PDFs)
-* **Search Engine:** Meilisearch (Typo-tolerant full-text search)
+## Stack
 
-**Frontend & Desktop Client**
-* **Web UI:** React (or Vue) + Tailwind CSS
-* **Desktop Wrapper:** Tauri (Rust)
+- API: FastAPI (Python 3.11)
+- Worker Queue: Celery + Redis
+- Database: PostgreSQL
+- Object Storage: MinIO (S3 compatible)
+- Search: Meilisearch with BM25-style relevance ranking
+- UI: React + Vite + Tailwind + Shadcn component structure
 
-## 📂 Project Structure
+## Search Relevance (BM25)
+
+VAULT uses Meilisearch's BM25-style relevance scoring pipeline for keyword search quality, tuned with ranking rules and searchable attributes for OCR-heavy documents.
+
+Ranking focus:
+
+- Prioritize exact and semantically close matches in extracted OCR text.
+- Keep important metadata fields searchable (filename, supplier, department, type, references).
+- Support typo tolerance while preserving high-confidence exact matches.
+
+## Project Layout
 
 ```text
 vault/
-├── agent.md                # Context file for Google Antigravity IDE / AI Agents
-├── docker-compose.yml      # Infrastructure orchestration (Postgres, MinIO, Redis, Meilisearch)
-├── backend/                # FastAPI application and Celery workers
-│   ├── main.py             # FastAPI entry point
-│   ├── worker.py           # Celery OCR tasks
-│   ├── models/             # Database schemas (SQLAlchemy/SQLModel)
-│   ├── routes/             # API endpoints
-│   └── static/             # Swagger UI custom branding (logos)
-├── frontend/               # React/Vue UI codebase
-│   ├── public/             # Web favicons and static assets
-│   ├── src/
-│   │   ├── assets/         # UI Logos and images
-│   │   ├── components/     # Reusable UI elements
-│   │   └── pages/          # Triage Dashboard, Search View, etc.
-│   └── src-tauri/          # Tauri Rust configuration and Desktop App Icons
-└── README.md
+|-- backend/
+|   |-- app/
+|   |   |-- core/
+|   |   |-- models/
+|   |   |-- routes/
+|   |   |-- schemas/
+|   |   |-- services/
+|   |   `-- workers/
+|   |-- main.py
+|   |-- worker.py
+|   |-- requirements.txt
+|   `-- Dockerfile
+|-- frontend/
+|   |-- src/
+|   |   |-- components/ui/      # Shadcn-style primitives
+|   |   |-- pages/
+|   |   |-- lib/
+|   |   `-- main.tsx
+|   |-- components.json         # Shadcn config
+|   |-- package.json
+|   `-- Dockerfile
+|-- docker-compose.yml
+`-- docs/
 ```
 
-## 🚀 Getting Started
+## Run With Docker
 
-### Prerequisites
-* [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-* [Python 3.11+](https://www.python.org/downloads/)
-* [Node.js & npm](https://nodejs.org/en/)
-* [Rust](https://www.rust-lang.org/tools/install) (For building the Tauri desktop app)
-
-### 1. Spin up the Infrastructure
-Start the core services (PostgreSQL, MinIO, Redis, Meilisearch) using Docker:
 ```bash
-docker-compose up -d
+docker compose up -d --build
 ```
 
-### 2. Start the Backend (FastAPI + Celery)
-Navigate to the backend directory, install dependencies, and start the server and worker:
+Services:
+
+- API docs: http://localhost:8000/docs
+- Frontend dashboard: http://localhost:5173
+- MinIO console: http://localhost:9001
+- Meilisearch: http://localhost:7700
+
+## Run Locally (Without Docker)
+
+### Backend
+
 ```bash
 cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload
-celery -A worker worker --loglevel=info
 ```
-*API Documentation will be available at: `http://localhost:8000/docs`*
 
-### 3. Start the Frontend (Tauri Desktop App)
-Navigate to the frontend directory, install dependencies, and launch the Tauri dev window:
+In a second terminal:
+
+```bash
+cd backend
+celery -A worker.celery_app worker --loglevel=info
+```
+
+### Frontend
+
 ```bash
 cd frontend
 npm install
-npm run tauri dev
+npm run dev
 ```
 
-## 🔒 Security & Deployment
-* **Environment Variables:** Never commit `.env` files. Ensure all credentials (MinIO keys, Postgres passwords) are securely injected.
-* **Remote Access:** The web interface should not be exposed directly to the public internet. Use a Zero Trust tunnel (e.g., Cloudflare Tunnels) or a VPN (e.g., Tailscale) for off-site staff.
+## API Endpoints
+
+- `POST /documents/ingest` - Upload PDF and enqueue OCR pipeline
+- `GET /documents` - List all documents
+- `GET /documents/triage` - List only `needs_review` documents
+- `PATCH /documents/{id}/link` - Manually link a triage document
+- `GET /documents/search?q=...` - Search OCR and linked records
+- `GET /documents/browse` - Browse documents by facet filters (for example `department`, `year`, `type`, `supplier`)
+- `GET /documents/facets` - Fetch available browse facets and counts for the current filter context
+- `GET /health` - Health check
+
+Example browse query:
+
+```http
+GET /documents/browse?department=procurement&year=2025&type=invoice&supplier=acme
+```
+
+Notes:
+
+- Browse endpoints rely on document metadata quality.
+- Facet values should be normalized at ingestion and during manual triage to avoid duplicates like `ACME`, `Acme`, `Acme Inc.`.
+
+## Shadcn UI Note
+
+The frontend is structured with Shadcn conventions:
+
+- `frontend/components.json` for aliases and Tailwind integration
+- reusable primitives in `frontend/src/components/ui`
+- utility helper `cn()` in `frontend/src/lib/utils.ts`
+
+You can add more components later with the Shadcn CLI without restructuring.

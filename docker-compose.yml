@@ -1,0 +1,130 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vault-postgres
+    environment:
+      POSTGRES_USER: vault
+      POSTGRES_PASSWORD: vault
+      POSTGRES_DB: vault
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: vault-redis
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:latest
+    container_name: vault-minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.12
+    container_name: vault-meili
+    environment:
+      MEILI_MASTER_KEY: masterKey
+    ports:
+      - "7700:7700"
+    volumes:
+      - meili_data:/meili_data
+
+  backend:
+    build:
+      context: ./backend
+    container_name: vault-backend
+    environment:
+      APP_NAME: VAULT API
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      DATABASE_URL: postgresql+psycopg://vault:vault@postgres:5432/vault
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: vault-documents
+      MEILI_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: masterKey
+      OCR_REFERENCE_REGEX: PO-\d{5}
+    depends_on:
+      - postgres
+      - redis
+      - minio
+      - meilisearch
+    ports:
+      - "8000:8000"
+
+  worker:
+    build:
+      context: ./backend
+    container_name: vault-worker
+    environment:
+      APP_NAME: VAULT API
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      DATABASE_URL: postgresql+psycopg://vault:vault@postgres:5432/vault
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: vault-documents
+      MEILI_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: masterKey
+      OCR_REFERENCE_REGEX: PO-\d{5}
+    command: celery -A worker.celery_app worker --loglevel=info
+    depends_on:
+      - backend
+
+  watcher:
+    build:
+      context: ./backend
+    container_name: vault-watcher
+    environment:
+      APP_NAME: VAULT API
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      DATABASE_URL: postgresql+psycopg://vault:vault@postgres:5432/vault
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: vault-documents
+      MEILI_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: masterKey
+      OCR_REFERENCE_REGEX: PO-\d{5}
+      # Mount a host directory (e.g. SMB share) here to replace /inbox
+      SCANNER_INBOX_PATH: /inbox
+    command: python watcher_entrypoint.py
+    volumes:
+      - scanner_inbox:/inbox
+    depends_on:
+      - backend
+      - redis
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: vault-frontend
+    environment:
+      VITE_API_URL: http://localhost:8000
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  minio_data:
+  meili_data:
+  scanner_inbox:

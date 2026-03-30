@@ -1,0 +1,13 @@
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+celery==5.4.0
+redis==5.2.1
+sqlmodel==0.0.22
+psycopg[binary]==3.2.3
+boto3==1.35.76
+meilisearch==0.34.1
+pydantic-settings==2.6.1
+python-multipart==0.0.18
+watchdog==6.0.0
+pdfplumber==0.11.4
+pytesseract==0.3.13

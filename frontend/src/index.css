@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Brand palette: dark navy + electric blue (matches VAULT logo) ─────── */
+:root {
+  /* Backgrounds */
+  --background: 220 36% 8%;
+  --foreground: 210 20% 92%;
+
+  /* Cards */
+  --card: 221 33% 12%;
+  --card-foreground: 210 20% 92%;
+
+  /* Popover */
+  --popover: 221 33% 12%;
+  --popover-foreground: 210 20% 92%;
+
+  /* Primary – electric blue from logo */
+  --primary: 211 76% 52%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Secondary – mid-navy */
+  --secondary: 220 26% 18%;
+  --secondary-foreground: 210 16% 75%;
+
+  /* Muted */
+  --muted: 220 28% 15%;
+  --muted-foreground: 210 14% 50%;
+
+  /* Accent – same as secondary */
+  --accent: 220 26% 18%;
+  --accent-foreground: 210 16% 75%;
+
+  /* Destructive */
+  --destructive: 0 68% 50%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Chrome */
+  --border: 220 24% 18%;
+  --input: 220 28% 14%;
+  --ring: 211 76% 52%;
+  --radius: 0.65rem;
+}
+
+* {
+  @apply border-border;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  @apply bg-background text-foreground antialiased;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 15% 0%, hsla(211, 76%, 35%, 0.20) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 85% 100%, hsla(228, 55%, 22%, 0.28) 0%, transparent 60%);
+}
+
+/* Subtle blue glow on focused inputs */
+input:focus-visible,
+button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.55);
+}
+
+/* Table row hover – slightly brighter navy */
+tbody tr:hover {
+  background-color: hsl(220 28% 15%);
+}
+
+/* Scrollbar styling for dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}

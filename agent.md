@@ -23,13 +23,13 @@ When generating code, modifying files, or creating execution plans, strictly adh
 **Storage & Data Vault**
 * **Object Storage:** MinIO (S3-compatible, for raw PDF files)
 * **Relational Database:** PostgreSQL (for metadata, document statuses, and linking)
-* **Search Engine:** Meilisearch (for ultra-fast full-text OCR search)
+* **Search Engine:** Meilisearch (for ultra-fast full-text OCR search with BM25-style relevance scoring)
 * **ORM:** SQLAlchemy or SQLModel (Python to Postgres)
 
 **Frontend Clients**
-* **Desktop App (On-Premise):** Tauri (Rust) + React or Vue.js
-* **Web App (Remote):** React or Vue.js (sharing the exact same UI components as Tauri)
-* **Styling:** Tailwind CSS
+* **Desktop App (On-Premise):** Tauri (Rust) + React + Shadcn UI
+* **Web App (Remote):** React + Shadcn UI (sharing the exact same UI components as Tauri)
+* **Styling:** Tailwind CSS + Shadcn component primitives
 
 **Infrastructure**
 * **Deployment:** Docker and Docker Compose (all services must run locally via containerization)
@@ -50,5 +50,6 @@ When generating code, modifying files, or creating execution plans, strictly adh
 * **Task Planning:** Always generate a structured implementation plan (Artifact) before writing significant backend logic or setting up the database schemas. Wait for user approval.
 * **Environment Variables:** Never hardcode credentials. Always use `.env` files for MinIO access keys, Postgres passwords, and Redis URLs.
 * **Error Handling:** Implement robust error handling, particularly in the Celery workers. If OCR fails or MinIO is unreachable, the task must be safely retried or logged, without crashing the worker.
-* **UI/UX:** When building the React/Vue frontend, prioritize a clean, dense, data-heavy "dashboard" aesthetic suitable for office staff. 
+* **Search Relevance:** Configure Meilisearch index settings explicitly to preserve BM25-style relevance quality (ranking rules, searchable attributes, filterable attributes).
+* **UI/UX:** When building the frontend, use Shadcn UI conventions (`components.json`, reusable `src/components/ui` primitives) and prioritize a clean, dense, data-heavy dashboard aesthetic suitable for office staff.
 * **Terminal Execution:** You are authorized to run `docker-compose up -d` and standard package management commands (`pip install`, `npm install`, `cargo add`). Ask for permission before performing destructive database migrations or deleting files.
